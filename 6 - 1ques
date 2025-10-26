@@ -1,0 +1,83 @@
+// ===========================================================
+// Middleware Implementation for Logging and Bearer Token Authentication
+// ===========================================================
+
+const express = require("express");
+const app = express();
+
+// ===========================================================
+// 1️⃣ Logging Middleware (Global)
+// Logs HTTP method, URL, and timestamp for every incoming request
+// ===========================================================
+const requestLogger = (req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${req.method} ${req.originalUrl}`);
+  next();
+};
+
+// Apply logging middleware globally
+app.use(requestLogger);
+
+// ===========================================================
+// 2️⃣ Authentication Middleware
+// Protects specific routes using Bearer token (mysecrettoken)
+// ===========================================================
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+
+  // Check if header exists and starts with "Bearer"
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Missing or invalid Authorization header" });
+  }
+
+  // Extract token
+  const token = authHeader.split(" ")[1];
+
+  // Validate token
+  if (token !== "mysecrettoken") {
+    return res.status(403).json({ message: "Invalid token. Access denied." });
+  }
+
+  // Token is valid → allow request
+  next();
+};
+
+// ===========================================================
+// 3️⃣ Routes
+// ===========================================================
+
+// Public route (no authentication needed)
+app.get("/public", (req, res) => {
+  res.json({
+    message: "Welcome to the Public Route! 🟢",
+    info: "This route is accessible without authentication.",
+  });
+});
+
+// Protected route (requires Bearer token)
+app.get("/protected", authenticateToken, (req, res) => {
+  res.json({
+    message: "Access Granted ✅",
+    info: "You have successfully accessed the protected route!",
+  });
+});
+
+// ===========================================================
+// 4️⃣ Default and Error Handling
+// ===========================================================
+app.get("/", (req, res) => {
+  res.send(" Express Middleware Example: Logging + Token Authentication");
+});
+
+// Catch-all for unknown routes
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
+// ===========================================================
+// 5️⃣ Start the Server
+// ===========================================================
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(` Server running on http://localhost:${PORT}`);
+});
